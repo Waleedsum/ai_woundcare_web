@@ -1,70 +1,62 @@
 # =========================
 # Framework
 # =========================
-fastapi==0.115.0
-uvicorn[standard]==0.32.0
-gunicorn==23.0.0
-pydantic>=2.10.0
-pydantic-settings>=2.6.0
+fastapi
+uvicorn[standard]
+gunicorn
+pydantic
+pydantic-settings
 # =========================
 # Database
 # =========================
-sqlalchemy==2.0.36
-psycopg2-binary==2.9.11
-alembic==1.14.0
+sqlalchemy
+psycopg2-binary
+alembic
 # =========================
 # Authentication & Security
 # =========================
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-python-multipart==0.0.12
-cryptography==43.0.3
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+cryptography
 # =========================
 # AI/ML Dependencies
 # =========================
-openai==1.54.0
-transformers>=4.47.0
+openai
+transformers
 torch==2.10.0
 torchvision==0.25.0
 # =========================
 # Image Processing
 # =========================
-Pillow==12.1.1
-opencv-python-headless==4.10.0.84
-numpy==2.4.2
+Pillow
+opencv-python-headless
+numpy
 # =========================
 # HTTP & Caching
 # =========================
-httpx==0.27.2
-requests==2.32.3
-redis==5.2.0
+httpx
+requests
+redis
 # =========================
 # Monitoring & Logging
 # =========================
-sentry-sdk==2.17.0
-prometheus-client==0.21.0
+sentry-sdk
+prometheus-client
 # =========================
 # Utilities
 # =========================
-python-dateutil==2.9.0
-pytz==2024.2
-# =========================
-# Development (optional)
-# =========================
-pytest==8.3.3
-pytest-asyncio==0.24.0
-black==24.10.0
-flake8==7.1.1
-mypy==1.13.0
+python-dateutil
+pytz
 # =========================
 # Streamlit (for frontend)
 # =========================
-streamlit==1.40.0
+streamlit
 # =========================
 # AWS S3 (optional)
 # =========================
-boto3==1.35.60
+boto3
 # =========================
 # Email (optional)
 # =========================
-aiosmtplib==3.0.2
+aiosmtplib
