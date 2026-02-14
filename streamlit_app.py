@@ -352,4 +352,5 @@ st.markdown(
     "AI Wound Care System v2.0 | Built with ❤️ for Healthcare Professionals"
     "</div>",
     unsafe_allow_html=True
+
 )
