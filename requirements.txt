@@ -25,11 +25,11 @@ cryptography==42.0.0
 # =========================
 # AI/ML Dependencies
 # =========================
-# AI/ML Dependencies
 openai==1.10.0
 transformers==4.37.2
 torch==2.10.0
-torchvision==0.17.0
+torchvision==0.17.0  # ✅ compatible with Python 3.13
+
 # =========================
 # Image Processing
 # =========================
