@@ -23,7 +23,7 @@ cryptography==43.0.3
 # AI/ML Dependencies
 # =========================
 openai==1.54.0
-transformers==4.46.0
+transformers>=4.47.0
 torch==2.10.0
 torchvision==0.25.0
 # =========================
