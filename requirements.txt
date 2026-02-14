@@ -60,3 +60,4 @@ boto3
 # Email (optional)
 # =========================
 aiosmtplib
+email-validator>=2.0.0
