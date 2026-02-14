@@ -29,7 +29,7 @@ torchvision==0.25.0
 # =========================
 # Image Processing
 # =========================
-Pillow==11.0.0
+Pillow==12.1.1
 opencv-python-headless==4.10.0.84
 numpy==2.1.3
 # =========================
