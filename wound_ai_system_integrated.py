@@ -139,6 +139,95 @@ def image_to_base64(filepath: str) -> str:
     with open(filepath, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
+
+def build_time_nice_recommendations(ai_analysis: Dict, risk_result: Dict) -> List[str]:
+    """Build structured support recommendations aligned to NICE NG19 + TIME framework."""
+    recommendations: List[str] = [
+        "AI-assisted support only — all decisions must be validated by a qualified clinician.",
+        "STEP 0 (Urgent escalation): If systemic infection, spreading cellulitis, rapid deterioration, or deep tissue involvement is suspected, arrange immediate medical review.",
+        "STEP 1 (Holistic assessment): Assess pressure risk, perfusion (ABPI for lower limb), diabetes status, nutrition (MUST), and pain; address underlying causes alongside wound care.",
+    ]
+
+    tissue = ai_analysis.get("tissue_percentages", {})
+    slough_pct = float(tissue.get("slough_percent", 0) or 0)
+    necrotic_pct = float(tissue.get("necrotic_percent", 0) or 0)
+
+    if slough_pct > 0 or necrotic_pct > 0:
+        recommendations.append(
+            "STEP 2 (TIME-T): Devitalised tissue may be present; consider debridement planning. Use autolytic options first-line if stable and not urgently infected."
+        )
+        recommendations.append(
+            "Debridement restrictions: Sharp debridement only by trained clinicians; do not aggressively debride stable dry heel eschar unless infected."
+        )
+
+    infection_signs = ai_analysis.get("infection_signs", [])
+    risk_level = str(risk_result.get("risk_level", "")).lower()
+    if risk_level in {"high", "critical"}:
+        recommendations.append(
+            "STEP 3 (TIME-I): Infection risk is elevated; urgent clinical review is required to assess need for systemic antibiotics."
+        )
+    elif infection_signs:
+        recommendations.append(
+            "STEP 3 (TIME-I): If local infection signs are confirmed clinically, consider short-term topical antimicrobial dressing (up to 2 weeks) and reassess frequently."
+        )
+    else:
+        recommendations.append(
+            "STEP 3 (TIME-I): No clear infection signal from AI output; avoid routine topical antimicrobials without confirmed infection."
+        )
+
+    exudate_level = str(ai_analysis.get("exudate_level", "")).lower()
+    granulation_pct = float(tissue.get("granulation_percent", 0) or 0)
+    no_active_infection_signal = (risk_level not in {"high", "critical"}) and (len(infection_signs) == 0)
+
+    low_trauma_candidate = (
+        granulation_pct >= 40
+        and slough_pct <= 20
+        and necrotic_pct <= 10
+        and exudate_level in {"none", "light", "low", "moderate"}
+        and no_active_infection_signal
+    )
+
+    if low_trauma_candidate:
+        recommendations.append(
+            "Dressing pathway (low-trauma/protective phase): Consider a non-adherent low-trauma contact layer (e.g., soft silicone/lipidocolloid) when granulating tissue is fragile and slough burden is low."
+        )
+        recommendations.append(
+            "Low-trauma conditions: Use only when slough/necrosis is low or already managed, exudate is low–moderate, and there is no active infection."
+        )
+        recommendations.append(
+            "Secondary dressing selection: low exudate—light absorbent pad; moderate exudate—foam dressing; high exudate—alginate/hydrofiber with a secondary cover."
+        )
+        recommendations.append(
+            "Hydrogel-sheet alternative: Consider only if wound is dry/minimally exuding and extra moisture is needed; avoid when exudate is moderate/high due to maceration risk."
+        )
+        recommendations.append(
+            "Change frequency guide: Contact layer may remain up to 3–7 days; secondary dressing typically changes every 1–3 days based on exudate and strike-through."
+        )
+    elif slough_pct > 20 or necrotic_pct > 10:
+        recommendations.append(
+            "Low-trauma contact layer may be premature: slough/necrotic burden appears significant; prioritize debridement pathway first (e.g., autolytic/hydrogel or alginate strategy per clinician assessment)."
+        )
+
+    if exudate_level in {"none", "light", "low"}:
+        moisture_line = "STEP 4 (TIME-M): Low exudate pattern — consider hydrogel or low-adherent dressing while avoiding desiccation."
+    elif exudate_level == "heavy":
+        moisture_line = "STEP 4 (TIME-M): High exudate pattern — consider alginate/hydrofiber and protect peri-wound skin from maceration."
+    else:
+        moisture_line = "STEP 4 (TIME-M): Moderate exudate pattern — consider foam dressing and maintain moisture balance without maceration."
+    recommendations.append(moisture_line)
+
+    recommendations.extend(
+        [
+            "STEP 5 (TIME-E): If not progressing, reassess pressure redistribution, infection, nutrition, and vascular status; refer if no improvement within 2–4 weeks or atypical features.",
+            "STEP 6 (Pressure redistribution): Reposition at least every 2 hours, use a high-specification foam mattress, and offload heels.",
+            "STEP 7 (Nutrition): Complete MUST screening; optimize energy/protein intake (about 1.25–1.5 g/kg/day) and refer to dietitian if risk identified.",
+            "STEP 8 (Monitoring): At each dressing change review tissue, exudate, pain, odour, and peri-wound skin; measure weekly with scale + photo. Escalate if healing trajectory is poor.",
+            "Critical restrictions: Avoid hydrocolloids on heavily sloughy/deep wounds; avoid antimicrobial dressings without infection; do not rely on visual size estimation alone.",
+        ]
+    )
+
+    return recommendations
+
 def analyze_wound_with_ai(image_base64: str, wound_context: str) -> Dict:
     """
     Analyze wound using GPT-4 Vision
@@ -156,6 +245,16 @@ def analyze_wound_with_ai(image_base64: str, wound_context: str) -> Dict:
                             "text": f"""Analyze this wound image and provide detailed assessment.
 
 Context: {wound_context}
+
+Clinical governance requirements:
+- This is AI-assisted support only and must be validated by a qualified clinician.
+- Use NICE NG19 and TIME (Tissue, Infection/Inflammation, Moisture, Edge) principles.
+- Flag urgent escalation if there are signs suggestive of systemic infection, spreading cellulitis, rapid deterioration, extensive necrosis, or deep tissue involvement.
+- Do NOT recommend routine topical antimicrobials without infection.
+- Do NOT recommend hydrocolloids for heavily sloughy or deep wounds.
+- Debridement decisions must be clinically validated; do not aggressively debride stable dry heel eschar unless infected.
+- Emphasize pressure redistribution, nutrition (MUST), and objective wound measurement.
+- When tissue is predominantly granulating with low slough burden, low-moderate exudate, and no active infection, include a low-trauma contact-layer option with secondary dressing by exudate.
 
 Please provide:
 1. Tissue composition (granulation %, slough %, necrotic %, epithelial %)
@@ -429,6 +528,7 @@ async def analyze_wound(
         
         infection_risk_score = risk_result["total_score"]
         infection_risk_level = risk_result["risk_level"]
+        protocol_recommendations = build_time_nice_recommendations(ai_analysis, risk_result)
         
         # 4. CREATE CASE IN DATABASE
         case = Case(
@@ -443,7 +543,7 @@ async def analyze_wound(
             infection_risk_score=infection_risk_score,
             infection_risk_level=infection_risk_level,
             ai_summary=ai_analysis.get("summary", ""),
-            treatment_plan="\n".join(ai_analysis.get("recommendations", [])),
+            treatment_plan="\n".join(protocol_recommendations),
             status="active",
             wound_onset_date=datetime.utcnow() - timedelta(days=days_since_onset) if days_since_onset else None
         )
@@ -505,7 +605,8 @@ async def analyze_wound(
                 },
                 "healing_stage": ai_analysis.get("healing_stage", ""),
                 "ai_summary": ai_analysis.get("summary", ""),
-                "recommendations": ai_analysis.get("recommendations", [])
+                "recommendations": protocol_recommendations,
+                "clinical_disclaimer": "AI-assisted support only — MUST be validated by a qualified clinician."
             }
         }
         
